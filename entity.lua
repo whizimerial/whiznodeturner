@@ -119,7 +119,7 @@ core.register_entity("whiznodeturner:block_entity", {
         armor_groups = {immortal = 1},
         collisionbox = {-0.5, -0.5, -0.5, 0.5, 0.5, 0.5},
         visual = "wielditem",
-        textures = {""},
+        textures = {"default:stone"},
         visual_size = {x = 0.675, y = 0.675, z = 0.675},
         backface_culling = true,
     },
@@ -135,7 +135,7 @@ core.register_entity("whiznodeturner:block_entity", {
                 self._mesh = data.mesh
                 self._textures = data.textures
                 self._collisionbox = data.collisionbox
-                self._wield_item = data.wield_item
+                self._wield_item = data.wield_item or data.nodename
                 self._visual_size = data.visual_size
                 self._is_chair = data.is_chair
                 self._sit_offset = data.sit_offset or 0
@@ -150,21 +150,52 @@ core.register_entity("whiznodeturner:block_entity", {
                 end
 
                 local is_physical = not self._no_collide
+                local visual = data.visual
+                local mesh = data.mesh
+                local textures = data.textures
+                local collisionbox = data.collisionbox
+
+                if (not textures or #textures == 0 or textures[1] == "") and self.nodename then
+                    local def = minetest.registered_nodes[self.nodename]
+                    if def then
+                        if def.mesh and def.mesh ~= "" then
+                            visual = "mesh"
+                            mesh = def.mesh
+                            textures = type(def.tiles) == "table" and def.tiles or {def.tiles}
+                        elseif def.drawtype == "normal" or def.drawtype == "allfaces" or def.drawtype == "glasslike" then
+                            visual = "cube"
+                            if type(def.tiles) == "table" then
+                                textures = def.tiles
+                            elseif type(def.tiles) == "string" then
+                                textures = {def.tiles, def.tiles, def.tiles, def.tiles, def.tiles, def.tiles}
+                            else
+                                textures = {self.nodename}
+                            end
+                        else
+                            visual = "wielditem"
+                            textures = {self._wield_item or self.nodename}
+                        end
+                        if not collisionbox and def.collisionbox then
+                            collisionbox = def.collisionbox
+                        end
+                    end
+                end
+
+                if not textures or #textures == 0 then
+                    textures = {self.nodename or "default_stone.png"}
+                end
+
                 local props = {
-                    visual = data.visual or "cube",
-                    mesh = data.mesh,
-                    textures = data.textures,
-                    collisionbox = data.collisionbox or {-0.5, -0.5, -0.5, 0.5, 0.5, 0.5},
-                    wield_item = data.wield_item or "",
-                    visual_size = data.visual_size or {x = 0.675, y = 0.675, z = 0.675},
+                    visual = visual or "cube",
+                    mesh = mesh,
+                    textures = textures,
+                    collisionbox = collisionbox or {-0.5, -0.5, -0.5, 0.5, 0.5, 0.5},
+                    wield_item = self._wield_item or self.nodename or "",
+                    visual_size = self._visual_size or {x = 0.675, y = 0.675, z = 0.675},
                     physical = is_physical,
                     collide_with_objects = is_physical,
                     show_selectionbox = false
                 }
-
-                if data.visual == "wielditem" and data.wield_item then
-                    props.textures = {data.wield_item}
-                end
 
                 self.object:set_properties(props)
 
