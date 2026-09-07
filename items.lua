@@ -55,3 +55,19 @@ minetest.register_tool("whiznodeturner:property_tool", {
         return itemstack
     end,
 })
+
+minetest.register_tool("whiznodeturner:scaler_tool", {
+    description = "Node Scaler Tool",
+    inventory_image = "whiznodeturner_scaler.png",
+    on_use = function(itemstack, user, pointed_thing)
+        block_func.handle_scaling(user, pointed_thing, "left")
+        return itemstack
+    end,
+    on_place = function(itemstack, user, pointed_thing)
+        return itemstack
+    end,
+    on_secondary_use = function(itemstack, user, pointed_thing)
+        block_func.handle_scaling(user, pointed_thing, "right")
+        return itemstack
+    end,
+})
