@@ -15,7 +15,6 @@ function block_func.convert_node_to_entity(pos, player)
     local v_size = {x = 1, y = 1, z = 1}
     local wield_item = ""
 
-    -- Preserve node drawtypes (2D plants, wallmounted, nodeboxes, meshes)
     if def.drawtype == "mesh" and def.mesh then
         visual = "mesh"
         v_size = {x = 10, y = 10, z = 10}
@@ -46,11 +45,15 @@ function block_func.convert_node_to_entity(pos, player)
         end
     end    
 
-    local tiles = def.tiles or {"default_stone.png"}
     local textures = {}
-    for i = 1, 6 do
-        local tile = tiles[i] or tiles[1]
-        textures[i] = type(tile) == "table" and tile.name or tile
+    if visual == "wielditem" then
+        textures = {node.name}
+    else
+        local tiles = def.tiles or {"default_stone.png"}
+        for i = 1, 6 do
+            local tile = tiles[i] or tiles[1]
+            textures[i] = type(tile) == "table" and tile.name or tile
+        end
     end
 
     local spawn_pos = {x = pos.x, y = pos.y, z = pos.z}
@@ -159,7 +162,47 @@ function block_func.handle_rotation(user, pointed_thing, click_type)
     end
 end
 
--- Updated UI Property Menu Logic with missing options added
+function block_func.handle_scaling(user, pointed_thing, click_type)
+    if not user then return end
+    local target_entity = nil
+    if pointed_thing and pointed_thing.type == "object" and pointed_thing.ref then
+        local obj = pointed_thing.ref
+        if obj and obj:get_luaentity() and obj:get_luaentity().name == "whiznodeturner:block_entity" then
+            target_entity = obj
+        end
+    end
+
+    if not target_entity then return end
+
+    local ctrl = user:get_player_control()
+    local is_crouched = ctrl.sneak
+    local props = target_entity:get_properties()
+    local v_size = props.visual_size or {x = 1, y = 1, z = 1}
+    
+    local step = 0.1
+    local multiplier = click_type == "right" and -step or step
+
+    if is_crouched then
+        v_size.y = math.max(0.1, v_size.y + multiplier)
+    else
+        local dir = user:get_look_dir()
+        if math.abs(dir.x) > math.abs(dir.z) then
+            v_size.x = math.max(0.1, v_size.x + multiplier)
+        else
+            v_size.z = math.max(0.1, v_size.z + multiplier)
+        end
+    end
+
+    target_entity:set_properties({
+        visual_size = v_size
+    })
+
+    local luaent = target_entity:get_luaentity()
+    if luaent then
+        luaent._visual_size = v_size
+    end
+end
+
 function block_func.open_property_menu(player, entity)
     local player_name = player:get_player_name()
     local luaent = entity:get_luaentity()
